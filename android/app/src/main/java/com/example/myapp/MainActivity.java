@@ -1,4 +1,4 @@
-package com.academind.vuememories;
+package com.example.myapp;
 
 import android.os.Bundle;
 
