@@ -27,7 +27,6 @@ import '@ionic/vue/css/display.css';
 import './theme/variables.css';
 import './theme/core.css';
 
-
 const app = createApp(App)
   .use(IonicVue)
   .use(router)

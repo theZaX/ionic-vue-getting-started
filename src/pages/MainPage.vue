@@ -76,6 +76,12 @@ import { add } from "ionicons/icons";
 // import ButtonTest from "../components/control/button-test.vue";
 // import ScrollControl from "../components/control/ScrollControl.vue";
 
+import { Plugins } from "@capacitor/core";
+const { UdpPlugin } = Plugins;
+//import {UdpPluginUtils} from "capacitor-udp";
+
+
+
 import {
   IonCol,
   IonGrid,
@@ -111,7 +117,8 @@ export default {
       connectionHistory: [],
       sendBarInfo: "faf",
       planeSocket: null,
-      sliderValue: 40
+      sliderValue: 40,
+      socketId: null
     };
   },
   computed: {
@@ -170,7 +177,7 @@ export default {
 
       this.planeSocket.send(JSON.stringify(messageInfo));
       this.sendBarInfo = "";
-
+      UdpPlugin.create({properties: { name: "yourSocketName", bufferSize: 2048 }} ).then(res=>{this.socketId = res.socketId});
     },
 
     LogMessage(sender, body) {
@@ -182,7 +189,7 @@ export default {
     },
     CloseWebDealio(){
       this.planeSocket.close()
-    }
+    },
   },
 };
 </script>
