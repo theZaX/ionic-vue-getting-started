@@ -1,6 +1,6 @@
 {
-  "appId": "com.academind.vuememories",
-  "appName": "Vue Memories",
+  "appId": "com.example.myapp",
+  "appName": "MyApp",
   "bundledWebRuntime": false,
   "npmClient": "npm",
   "webDir": "dist",
@@ -10,4 +10,5 @@
     }
   },
   "cordova": {}
+
 }
