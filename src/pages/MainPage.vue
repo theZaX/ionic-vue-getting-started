@@ -23,7 +23,7 @@
 
         <ion-row class="ion-text-center ion-no-padding">
           <ion-col>
-            <h4 class="ion-padding-horizontal">{{ webSocketStatus }}</h4>
+            <h4 class="ion-padding-horizontal">Status Bar</h4>
           </ion-col>
         </ion-row>
         <ion-row>
@@ -36,7 +36,14 @@
         <ion-row>
           <ion-col>
             <ion-item>
-              <ion-range v-model="sliderValue" @ionchange="YeetSliderInfo" min="-200" max="200" color="danger" pin="true">
+              <ion-range
+                v-model="sliderValue"
+                @ionchange="YeetSliderInfo"
+                min="-200"
+                max="200"
+                color="danger"
+                pin="true"
+              >
                 <ion-label slot="start">-200</ion-label>
                 <ion-label slot="end">200</ion-label>
               </ion-range>
@@ -80,8 +87,6 @@ import { Plugins } from "@capacitor/core";
 const { UdpPlugin } = Plugins;
 //import {UdpPluginUtils} from "capacitor-udp";
 
-
-
 import {
   IonCol,
   IonGrid,
@@ -118,16 +123,10 @@ export default {
       sendBarInfo: "faf",
       planeSocket: null,
       sliderValue: 40,
-      socketId: null
+      socketId: null,
     };
   },
   computed: {
-    webSocketStatus() {
-      if (this.isConnected) {
-        return "Connected";
-      }
-      return "Not Connected";
-    },
   },
   methods: {
     OpenWebDealio() {
@@ -160,10 +159,8 @@ export default {
 
       this.planeSocket.send(JSON.stringify(messageInfo));
       this.sendBarInfo = "";
-
-
     },
-    YeetSliderInfo(){
+    YeetSliderInfo() {
       const messageInfo = {
         body: this.sliderValue,
         sender: "slider",
@@ -177,7 +174,6 @@ export default {
 
       this.planeSocket.send(JSON.stringify(messageInfo));
       this.sendBarInfo = "";
-      UdpPlugin.create({properties: { name: "yourSocketName", bufferSize: 2048 }} ).then(res=>{this.socketId = res.socketId});
     },
 
     LogMessage(sender, body) {
@@ -187,9 +183,25 @@ export default {
       };
       this.connectionHistory.unshift(messageInfo);
     },
-    CloseWebDealio(){
-      this.planeSocket.close()
+    CloseWebDealio() {
+      this.planeSocket.close();
     },
+  },
+  mounted() {
+    this.LogMessage("System", "about to create dealio");
+    UdpPlugin.create({
+      properties: { name: "yourSocketName", bufferSize: 2048 },
+    }).then((res) => {
+      this.socketId = res.socketId;
+      this.LogMessage("System", "dealio created");
+      UdpPlugin.bind({ socketId: res.socketId, port: 5000 });
+      UdpPlugin.send({
+        socketId: res.socketId,
+        address: "192.168.1.4",
+        port: 6688,
+        buffer: btoa("hello from app"),
+      });
+    });
   },
 };
 </script>
