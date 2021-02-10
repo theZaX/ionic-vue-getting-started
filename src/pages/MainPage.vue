@@ -2,25 +2,6 @@
   <base-layout page-title="Plane Control Panel">
     <ion-content>
       <ion-grid>
-        <ion-row>
-          <ion-col size="12">
-            <ion-button
-              expand="block"
-              color="secondary"
-              v-if="!isConnected"
-              @click="OpenWebDealio"
-              >Connect</ion-button
-            >
-            <ion-button
-              expand="block"
-              color="danger"
-              v-else
-              @click="CloseWebDealio"
-              >Disconnect</ion-button
-            >
-          </ion-col>
-        </ion-row>
-
         <ion-row class="ion-text-center ion-no-padding">
           <ion-col>
             <h4 class="ion-padding-horizontal">Status Bar</h4>
@@ -126,54 +107,36 @@ export default {
       socketId: null,
     };
   },
-  computed: {
-  },
+  computed: {},
   methods: {
-    OpenWebDealio() {
-      if (this.planeSocket === null || this.planeSocket.readystate !== 1) {
-        this.LogMessage("system", "trying to connect via websockets");
-        this.planeSocket = new WebSocket("ws://192.168.4.1");
-        this.planeSocket.onopen = () => {
-          this.isConnected = true;
-        };
-        this.planeSocket.onclose = () => {
-          this.isConnected = false;
-        };
-
-        this.planeSocket.onmessage = (event) => {
-          this.LogMessage("plane", event.data);
-        };
-      }
+    SendFromBar() {
+      this.SendMessage("Client", this.sendBarInfo);
+      this.sendBarInfo = "";
     },
-    SendMessage() {
+    SendMessage(sender, body) {
       const messageInfo = {
-        body: this.sendBarInfo,
-        sender: "client",
+        body: body,
+        sender: sender,
       };
 
-      if (this.planeSocket === null || this.planeSocket.readyState !== 1) {
-        this.LogMessage("System", "send failed");
-        return;
-      }
-      this.LogMessage("client", this.sendBarInfo);
+      this.LogMessage(sender, body);
 
-      this.planeSocket.send(JSON.stringify(messageInfo));
-      this.sendBarInfo = "";
+      UdpPlugin.send({
+        socketId: this.socketId,
+        address: "192.168.1.4",
+        port: 6688,
+        buffer: btoa(messageInfo),
+      });
     },
     YeetSliderInfo() {
-      const messageInfo = {
-        body: this.sliderValue,
-        sender: "slider",
-      };
-
-      if (this.planeSocket === null || this.planeSocket.readyState !== 1) {
-        this.LogMessage("System", "send failed");
-        return;
-      }
+      //this.SendMessage("Slider", this.sliderValue);
       this.LogMessage("slider", this.sliderValue);
-
-      this.planeSocket.send(JSON.stringify(messageInfo));
-      this.sendBarInfo = "";
+      UdpPlugin.send({
+        socketId: this.socketId,
+        address: "192.168.1.4",
+        port: 6688,
+        buffer: btoa(this.sliderValue),
+      });
     },
 
     LogMessage(sender, body) {
