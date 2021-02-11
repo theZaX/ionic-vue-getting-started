@@ -15,11 +15,38 @@
         </ion-row>
 
         <ion-row>
+        {{sliderValues[0]}}
+        </ion-row>
+
+        <ion-row>
+
           <ion-col>
             <ion-item>
               <ion-range
-                v-model="sliderValue"
-                @ionchange="YeetSliderInfo"
+                v-model="sliderValues[0]"
+                min="0"
+                max="1024"
+                color="danger"
+                pin="true"
+              >
+                <ion-label slot="start">0</ion-label>
+                <ion-label slot="end">100%</ion-label>
+              </ion-range>
+            </ion-item>
+          </ion-col>
+        </ion-row>
+
+        <ion-row>
+        {{sliderValues[1]}}
+        </ion-row>
+
+
+        <ion-row>
+
+          <ion-col>
+            <ion-item>
+              <ion-range
+                v-model="sliderValues[1]"
                 min="-200"
                 max="200"
                 color="danger"
@@ -41,18 +68,18 @@
           </ion-col>
 
           <ion-col size="4">
-            <ion-button @click="SendMessage" expand="block">Send</ion-button>
+            <ion-button @click="SendFromBar" expand="block">Send</ion-button>
           </ion-col>
         </ion-row>
       </ion-grid>
 
-      <ion-list lines="none">
+      <!-- <ion-list lines="none">
         <ion-card v-for="message in connectionHistory" :key="message.body"
           ><ion-item
             >{{ message.sender }}: {{ message.body }}</ion-item
           ></ion-card
         >
-      </ion-list>
+      </ion-list> -->
     </ion-content>
   </base-layout>
 </template>
@@ -63,6 +90,9 @@ import { add } from "ionicons/icons";
 // import RangeTest from "../components/control/range-test.vue";
 // import ButtonTest from "../components/control/button-test.vue";
 // import ScrollControl from "../components/control/ScrollControl.vue";
+
+const IP_ADDRESS = "192.168.1.10";
+const UDP_PORT = 1234;
 
 import { Plugins } from "@capacitor/core";
 const { UdpPlugin } = Plugins;
@@ -78,8 +108,8 @@ import {
   IonInput,
   IonRange,
   IonContent,
-  IonList,
-  IonCard,
+  //IonList,
+  //IonCard,
 } from "@ionic/vue";
 
 export default {
@@ -93,8 +123,8 @@ export default {
     IonInput,
     IonRange,
     IonContent,
-    IonList,
-    IonCard,
+    //IonList,
+    //IonCard,
   },
   data() {
     return {
@@ -103,8 +133,9 @@ export default {
       connectionHistory: [],
       sendBarInfo: "faf",
       planeSocket: null,
-      sliderValue: 40,
+      sliderValues: [0, 0],
       socketId: null,
+      packetNumber: 0
     };
   },
   computed: {},
@@ -123,20 +154,13 @@ export default {
 
       UdpPlugin.send({
         socketId: this.socketId,
-        address: "192.168.1.4",
-        port: 6688,
+        address: IP_ADDRESS,
+        port: UDP_PORT,
         buffer: btoa(messageInfo),
       });
     },
     YeetSliderInfo() {
-      //this.SendMessage("Slider", this.sliderValue);
-      this.LogMessage("slider", this.sliderValue);
-      UdpPlugin.send({
-        socketId: this.socketId,
-        address: "192.168.1.4",
-        port: 6688,
-        buffer: btoa(this.sliderValue),
-      });
+      this.SendMessage("Slider", this.sliderValue);
     },
 
     LogMessage(sender, body) {
@@ -146,25 +170,50 @@ export default {
       };
       this.connectionHistory.unshift(messageInfo);
     },
-    CloseWebDealio() {
-      this.planeSocket.close();
+    CreateUdpSocket() {
+      this.LogMessage("System", "about to create dealio");
+      UdpPlugin.create({
+        properties: { name: "yourSocketName", bufferSize: 2048 },
+      }).then((res) => {
+        this.socketId = res.socketId;
+        this.LogMessage("System", "dealio created");
+        UdpPlugin.bind({ socketId: res.socketId, port: 5000 });
+      });
+    },
+    InboundMessageHandler(data) {
+      this.LogMessage("Plane", atob(data.buffer));
+      const recievedObject = JSON.parse(atob(data.buffer));
+      console.log(recievedObject);
+    },
+    ConnectionHandler() {
+      this.packetNumber++
+      
+      const controlPacket = {
+        type: "control",
+        SliderValues: this.sliderValues,
+        PacketNumber: this.packetNumber
+      }
+
+      UdpPlugin.send({
+        socketId: this.socketId,
+        address: IP_ADDRESS,
+        port: UDP_PORT,
+        buffer: btoa(JSON.stringify(controlPacket)),
+      });
+
+      this.LogMessage("System", this.packetNumber);
     },
   },
   mounted() {
-    this.LogMessage("System", "about to create dealio");
-    UdpPlugin.create({
-      properties: { name: "yourSocketName", bufferSize: 2048 },
-    }).then((res) => {
-      this.socketId = res.socketId;
-      this.LogMessage("System", "dealio created");
-      UdpPlugin.bind({ socketId: res.socketId, port: 5000 });
-      UdpPlugin.send({
-        socketId: res.socketId,
-        address: "192.168.1.4",
-        port: 6688,
-        buffer: btoa("hello from app"),
-      });
+    this.CreateUdpSocket();
+
+    // set up message handler
+    UdpPlugin.addListener("receive", (data) => {
+      this.InboundMessageHandler(data);
     });
+
+    setInterval(this.ConnectionHandler, 10);
+    // set up send sequence
   },
 };
 </script>
